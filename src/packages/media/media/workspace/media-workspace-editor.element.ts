@@ -27,7 +27,7 @@ export class UmbMediaWorkspaceEditorElement extends UmbLitElement {
 	render() {
 		if (!this._id) return nothing;
 		return html` <umb-workspace-editor alias="Umb.Workspace.Media">
-			<div id="header" slot="header">TODO: MISSING INPUT COMPONENT</div>
+			<div id="header" slot="header">Yoga Pose</div>
 			<umb-workspace-action-menu
 				slot="action-menu"
 				entity-type="media"

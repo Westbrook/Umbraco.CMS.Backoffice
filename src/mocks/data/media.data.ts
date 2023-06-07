@@ -7,7 +7,7 @@ import { ContentTreeItemResponseModel, PagedContentTreeItemResponseModel } from 
 export const data: Array<MediaDetails> = [
 	{
 		$type: '',
-		name: 'Flipped Car',
+		name: 'Yoga Pose',
 		type: 'media',
 		icon: 'picture',
 		hasChildren: false,

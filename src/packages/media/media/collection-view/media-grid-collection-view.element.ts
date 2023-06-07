@@ -1,176 +1,163 @@
+import { html, literal } from 'lit/static-html.js';
+import { choose } from 'lit/directives/choose.js';
+import {when} from 'lit/directives/when.js';
+import { yoga1, yoga2, yoga3 } from './assets.js';
+import { css, property, customElement, state, ifDefined } from '@umbraco-cms/backoffice/external/lit';
 import { UUITextStyles } from '@umbraco-cms/backoffice/external/uui';
-import { css, html , customElement, state , repeat } from '@umbraco-cms/backoffice/external/lit';
-import { UmbCollectionContext, UMB_COLLECTION_CONTEXT_TOKEN } from '@umbraco-cms/backoffice/collection';
 import { UmbLitElement } from '@umbraco-cms/internal/lit-element';
-import { EntityTreeItemResponseModel } from '@umbraco-cms/backoffice/backend-api';
+import '@spectrum-web-components/theme/sp-theme.js';
+import '@spectrum-web-components/theme/scale-medium.js';
+import '@spectrum-web-components/theme/theme-light.js';
+import '@spectrum-web-components/action-button/sp-action-button.js';
+import '@spectrum-web-components/button/sp-button.js';
+import '@spectrum-web-components/switch/sp-switch.js';
+import '@spectrum-web-components/icons-workflow/icons/sp-icon-edit.js';
+import '@spectrum-web-components/progress-circle/sp-progress-circle.js';
+import '@spectrum-web-components/tooltip/sp-tooltip.js';
 
 @customElement('umb-media-grid-collection-view')
 export class UmbMediaGridCollectionViewElement extends UmbLitElement {
-	@state()
-	private _mediaItems?: Array<EntityTreeItemResponseModel>;
+	@property({type: Boolean})
+	umbraco = false;
 
 	@state()
-	private _selection: Array<string> = [];
+	editing = false;
 
-	private _collectionContext?: UmbCollectionContext<EntityTreeItemResponseModel, any>;
+	@state()
+	loading = false;
 
-	constructor() {
-		super();
-		document.addEventListener('dragenter', this._handleDragEnter.bind(this));
-		document.addEventListener('dragleave', this._handleDragLeave.bind(this));
-		document.addEventListener('drop', this._handleDrop.bind(this));
-		this.consumeContext(UMB_COLLECTION_CONTEXT_TOKEN, (instance) => {
-			this._collectionContext = instance;
-			this._observeCollectionContext();
-		});
+	@property()
+	state: 'raw' | 'pop' | 'removed' = 'raw';
+
+	handleSwitchChange() {
+		this.umbraco = !this.umbraco;
 	}
 
-	disconnectedCallback(): void {
-		super.disconnectedCallback();
-		document.removeEventListener('dragenter', this._handleDragEnter.bind(this));
-		document.removeEventListener('dragleave', this._handleDragLeave.bind(this));
-		document.removeEventListener('drop', this._handleDrop.bind(this));
+	handleOriginal() {
+		this.loading = true;
+		setTimeout(() => {
+			this.state = 'raw';
+			this.loading = false;
+		}, 2200);
 	}
 
-	private _handleDragEnter() {
-		this.toggleAttribute('dragging', true);
+	handlePop() {
+		this.loading = true;
+		setTimeout(() => {
+			this.state = 'pop';
+			this.loading = false;
+		}, 2750);
 	}
 
-	private _handleDragLeave() {
-		this.toggleAttribute('dragging', false);
+	handleBackground() {
+		this.loading = true;
+		setTimeout(() => {
+			this.state = 'removed';
+			this.loading = false;
+		}, 3550);
 	}
 
-	private _handleDrop(e: DragEvent) {
-		e.preventDefault();
-		this.toggleAttribute('dragging', false);
+	handleEdit() {
+		this.editing = true;
 	}
 
-	private _observeCollectionContext() {
-		if (!this._collectionContext) return;
-
-		this.observe(this._collectionContext.items, (mediaItems) => {
-			this._mediaItems = [...mediaItems].sort((a, b) => (a.hasChildren === b.hasChildren ? 0 : a ? -1 : 1));
-		});
-
-		this.observe(this._collectionContext.selection, (selection) => {
-			this._selection = selection;
-		});
-	}
-
-	private _handleOpenItem(mediaItem: EntityTreeItemResponseModel) {
-		//TODO: Fix when we have dynamic routing
-		history.pushState(null, '', 'section/media/media/edit/' + mediaItem.id);
-	}
-
-	private _handleSelect(mediaItem: EntityTreeItemResponseModel) {
-		if (mediaItem.id) {
-			this._collectionContext?.select(mediaItem.id);
-		}
-	}
-
-	private _handleDeselect(mediaItem: EntityTreeItemResponseModel) {
-		if (mediaItem.id) {
-			this._collectionContext?.deselect(mediaItem.id);
-		}
-	}
-
-	private _isSelected(mediaItem: EntityTreeItemResponseModel) {
-		if (mediaItem.id) {
-			return this._selection.includes(mediaItem.id);
-		}
-		return false;
-	}
-
-	private _renderMediaItem(item: EntityTreeItemResponseModel) {
-		const name = item.name || '';
-		//TODO: fix the file extension when media items have a file extension.
-		return html`<uui-card-media
-			selectable
-			?select-only=${this._selection && this._selection.length > 0}
-			?selected=${this._isSelected(item)}
-			@open=${() => this._handleOpenItem(item)}
-			@selected=${() => this._handleSelect(item)}
-			@deselected=${() => this._handleDeselect(item)}
-			class="media-item"
-			.fileExt=${item.hasChildren ? '' : 'image'}
-			name=${name}></uui-card-media>`;
+	handleSave() {
+		this.editing = false;
 	}
 
 	render() {
+		const actionTag = this.umbraco
+			? literal`uui-button`
+			: literal`sp-action-button`;
+		const buttonTag = this.umbraco
+			? literal`uui-button`
+			: literal`sp-button`;
+		const switchTag = this.umbraco
+			? literal`uui-toggle`
+			: literal`sp-switch`;
+		const loadingTag = this.umbraco
+			? literal`uui-loader-circle`
+			: literal`sp-progress-circle`;
+
 		return html`
-			<uui-file-dropzone
-				id="dropzone"
-				multiple
-				@file-change=${(e: any) => console.log(e)}
-				label="Drop files here"
-				accept=""></uui-file-dropzone>
-			<div id="media-files">
-				${this._mediaItems
-					? repeat(
-							this._mediaItems,
-							(file, index) => (file.id || '') + index,
-							(file) => this._renderMediaItem(file)
-					  )
-					: ''}
-			</div>
+			<sp-theme scale="medium" color="light">
+				<div class="container">
+					${choose(this.state, [
+						['raw', () => html`<img alt="Unedited yoga pose" src=${yoga1} />`],
+						['pop', () => html`<img alt="Color popped yoga pose" src=${yoga2} />`],
+						['removed', () => html`<img alt="Background removed yoga pose" src=${yoga3} />`]
+					])}
+					${when(this.loading, () => html`
+						<div class="loading">
+							<${loadingTag} indeterminate size="l"></${loadingTag}>
+						</div>
+					`)}
+				</div>
+				<div class="controls hud">
+					${when(this.editing, () => html`
+						<${buttonTag} variant="secondary" look="secondary" @click=${this.handleOriginal}>Original</${buttonTag}>
+						<${buttonTag} variant="secondary" look="secondary" @click=${this.handlePop}>Color Pop</${buttonTag}>
+						<${buttonTag} variant="secondary" look="secondary" @click=${this.handleBackground}>Remove Background</${buttonTag}>
+						<${buttonTag} variant="primary" look="primary" @click=${this.handleSave}>Save</${buttonTag}>
+					`, 
+					() => html`
+						<${actionTag} look="secondary" @click=${this.handleEdit} compact pristine>
+							<sp-icon-edit slot=${ifDefined(this.umbraco ? undefined : 'icon')}></sp-icon-edit>
+							<sp-tooltip self-managed placement="left" delayed>Edit with Adobe Photoshop</sp-tooltip>
+						</${actionTag}>
+					`)}
+				</div>
+				<div class="toggle hud">
+					<${switchTag} class="switch" @change=${this.handleSwitchChange} ?checked=${this.umbraco}>Umbraco UI</${switchTag}>
+				</div>
+			</sp-theme>
 		`;
 	}
 
-	static styles = [
-		UUITextStyles,
-		css`
-			:host {
-				display: flex;
-				flex-direction: column;
-				box-sizing: border-box;
-				position: relative;
-				height: 100%;
-				width: 100%;
-				padding: var(--uui-size-space-3) var(--uui-size-space-6);
-			}
-			:host([dragging]) #dropzone {
-				opacity: 1;
-				pointer-events: all;
-			}
-			[dropzone] {
-				opacity: 0;
-			}
-			#dropzone {
-				opacity: 0;
-				pointer-events: none;
-				display: block;
-				position: absolute;
-				inset: 0px;
-				z-index: 100;
-				backdrop-filter: opacity(1); /* Removes the built in blur effect */
-				border-radius: var(--uui-border-radius);
-				overflow: clip;
-				border: 1px solid var(--uui-color-focus);
-			}
-			#dropzone:after {
-				content: '';
-				display: block;
-				position: absolute;
-				inset: 0;
-				border-radius: var(--uui-border-radius);
-				background-color: var(--uui-color-focus);
-				opacity: 0.2;
-			}
-			#media-folders {
-				margin-bottom: var(--uui-size-space-5);
-			}
-			#media-folders,
-			#media-files {
-				display: grid;
-				grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-				grid-template-rows: repeat(auto-fill, 200px);
-				gap: var(--uui-size-space-5);
-			}
-			.media-item img {
-				object-fit: contain;
-			}
-		`,
-	];
+	static styles = [UUITextStyles, css`
+		:host {
+			display: block;
+			height: 100%;
+			position: relative;
+			overflow: hidden;
+		}
+		.hud {
+			padding: 1em;
+			background: white;
+			border-radius: 5px;
+		}
+		.toggle {
+			position: absolute;
+			bottom: 1em;
+			right: 1em;
+		}
+		.controls {
+			position: absolute;
+			top: 1em;
+			right: 1em;
+		}
+		.container {
+			position: absolute;
+			inset: 0;
+			padding: 2em;
+		}
+		.loading {
+			position: absolute;
+			inset: 0;
+			background: #00000033;
+			display: grid;
+			place-content: center;
+		}
+		uui-loader-circle {
+			width: 100px;
+			height: 100px;
+		}
+		img {
+			width: 100%;
+			height: 100%;
+			object-fit: contain;
+		}
+	`];
 }
 
 export default UmbMediaGridCollectionViewElement;
